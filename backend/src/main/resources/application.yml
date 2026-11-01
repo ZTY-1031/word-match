@@ -1,0 +1,26 @@
+server:
+  # 需要换端口时用 --server.port=xxxx 或环境变量 SERVER_PORT
+  port: 8080
+  compression:
+    # 前端 js 未压缩 120KB，gzip 后 47KB，手机流量下差别明显
+    enabled: true
+
+spring:
+  application:
+    name: word-match
+
+app:
+  # 单回合输入时限（秒），全局统一
+  round-seconds: 20
+  # 房间在内存在活多久（秒），到期自动丢弃
+  room-ttl-seconds: 7200
+  # 揭晓动效停留时长（毫秒），由服务端控制推进节奏
+  reveal-millis: 2400
+  # 开发期允许的前端源（生产同域部署不需要）
+  cors-origins:
+    - http://localhost:5173
+    - http://127.0.0.1:5173
+
+logging:
+  level:
+    com.wordmatch: INFO

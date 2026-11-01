@@ -1,0 +1,9 @@
+# 打包镜像时不需要带进上下文的东西（backend/target 要留着，jar 在里面）
+.git
+.workbuddy
+docs
+frontend/node_modules
+frontend/dist
+test
+*.log
+*.md

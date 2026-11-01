@@ -1,0 +1,21 @@
+# 依赖与构建产物
+node_modules/
+dist/
+target/
+.preview/
+
+# 本地运行/调试产物
+.workbuddy/
+.shot/
+*.log
+tmp/
+
+# 编辑器 / 系统
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# 说明：backend/src/main/resources/static 是前端构建产物，故意提交，
+# 这样在只有 JDK 的服务器上直接 mvn package 就能出可运行的 jar。
