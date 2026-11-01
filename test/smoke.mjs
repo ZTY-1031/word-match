@@ -94,8 +94,13 @@ class Player {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 async function main() {
-  // 1. 建房
-  const created = await post('/api/rooms', { nickname: '小明', maxRounds: 5, anchorMode: 'RANDOM' })
+  // 1. 建房（锚点固定，避免随机到下面要提交的词导致「禁复用」误伤测试）
+  const created = await post('/api/rooms', {
+    nickname: '小明',
+    maxRounds: 5,
+    anchorMode: 'CUSTOM',
+    startAnchor: '雨天'
+  })
   check('建房成功', created.code === 0, JSON.stringify(created.data))
   const code = created.data.code
   const hostToken = created.data.token
@@ -165,8 +170,8 @@ async function main() {
   check('新回合重置提交状态', round2.players.every((p) => !p.submitted))
 
   // 12. 第二轮撞词
-  A.send('round.submit', { roundNo: 2, word: '夏天' })
-  B.send('round.submit', { roundNo: 2, word: '夏天' })
+  A.send('round.submit', { roundNo: 2, word: '葡萄' })
+  B.send('round.submit', { roundNo: 2, word: '葡萄' })
   const finished = await A.waitFor((p) => p.snapshot?.status === 'FINISHED', '终局')
   check('撞词判胜', finished.result?.type === 'WIN', JSON.stringify(finished.result))
   check('回合数正确', finished.result?.rounds === 2)

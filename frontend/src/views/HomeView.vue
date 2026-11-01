@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { createRoom, getRoom, joinRoom } from '../api'
 import { disconnect, showToast } from '../game'
+import { applyNormalized, normalizeRoomCode } from '../input'
 import { clearSession, loadSession, saveSession } from '../session'
 
 const route = useRoute()
@@ -93,7 +94,8 @@ function persist(data, name) {
 }
 
 function onCodeInput(event) {
-  code.value = event.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 6)
+  // 统一收口：过滤非法字符 + 转大写 + 截断 6 位，并在真的改动时把光标放回原处
+  code.value = applyNormalized(event.target, normalizeRoomCode)
 }
 
 function backToHome() {

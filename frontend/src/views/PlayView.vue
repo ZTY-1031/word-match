@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { connect, game, send } from '../game'
+import { applyNormalized, normalizeWord, wordLimit } from '../input'
 import { loadSession } from '../session'
 
 const route = useRoute()
@@ -49,15 +50,9 @@ const dashOffset = computed(() => {
 })
 
 const wordLength = computed(() => [...word.value].length)
-const maxLen = computed(() => {
-  const chars = [...word.value]
-  if (!chars.length) return 12
-  const allHan = chars.every((c) => /[\u4e00-\u9fa5]/.test(c))
-  const allAscii = chars.every((c) => /[a-zA-Z0-9]/.test(c))
-  if (allHan) return 12
-  if (allAscii) return 20
-  return 16
-})
+// 上限只跟当前内容有关（中文 12 / 英文数字 20 / 混合 16）
+const maxLen = computed(() => wordLimit(word.value))
+const composing = ref(false)
 const repeated = computed(() => {
   const norm = word.value.trim().toLowerCase()
   if (!norm) return false
@@ -168,14 +163,38 @@ function showReveal(item) {
   }, 2000)
 }
 
-function onInput(event) {
-  let next = (event.target.value || '').replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, '')
-  const chars = [...next]
-  if (chars.length > maxLen.value) {
-    next = chars.slice(0, maxLen.value).join('')
+function onWordInput(event) {
+  // 中文输入法正在拼写时，value 里是「汉字 + 拼音字母」，拼音会被算进字数，
+  // 一旦按字数截断就会把正在拼的内容抹掉（现象：输入的东西被吃掉/被打断）。
+  // 组合期间先不处理，等 compositionend 一次性收敛。
+  if (event.isComposing) {
+    return
   }
-  word.value = next
-  event.target.value = next
+  // 某些移动端输入法不发 compositionend，这里用非组合的 input 事件兜底复位
+  composing.value = false
+  word.value = applyNormalized(event.target, normalizeWord)
+}
+
+function onCompositionStart() {
+  composing.value = true
+}
+
+function onCompositionEnd(event) {
+  composing.value = false
+  word.value = applyNormalized(event.target, normalizeWord)
+}
+
+function onEnter(event) {
+  // 输入法里回车是「选词」，不是提交
+  if (event.isComposing || composing.value) {
+    composing.value = false
+    return
+  }
+  submit()
+}
+
+function onBlur() {
+  composing.value = false
 }
 
 function submit() {
@@ -264,10 +283,14 @@ const myName = computed(() => me.value?.nickname || '你')
         :value="word"
         :disabled="submitted || snap.phase !== 'ROUND_OPEN'"
         :placeholder="submitted ? '已提交，等对方…' : '你想到了什么？'"
-        maxlength="20"
         autocomplete="off"
-        @input="onInput"
-        @keyup.enter="submit"
+        autocapitalize="off"
+        spellcheck="false"
+        @compositionstart="onCompositionStart"
+        @compositionend="onCompositionEnd"
+        @input="onWordInput"
+        @keyup.enter="onEnter"
+        @blur="onBlur"
       />
       <div class="hint" :class="{ error: repeated }">{{ hint }}</div>
       <button class="btn btn-primary btn-block" :disabled="!canSubmit" @click="submit">
